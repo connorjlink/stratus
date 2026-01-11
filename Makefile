@@ -28,10 +28,12 @@ all: $(OUTPUT_BIN)
 $(OUTPUT_BIN): $(OBJECTS)
 	$(CC) -T $(LINKER_SCRIPT) -o $@ $(LDFLAGS) $(OBJECTS) -lgcc
 
-# Run the OS in QEMU
 run: all
-	qemu-system-i386 -kernel $(OUTPUT_BIN)
+	qemu-system-riscv64 -machine virt -s -S -bios ~/opensbi/build/platform/generic/firmware/fw_dynamic.bin
 
-# Clean up the build files
 clean:
 	rm -f $(OBJECTS) $(OUTPUT_BIN)
+
+
+
+

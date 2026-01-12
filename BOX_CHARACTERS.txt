@@ -1,4 +1,4 @@
-
+Single Line
 ASCII code 191 = ┐ ( Box drawing character single line upper right corner )
 ASCII code 192 = └ ( Box drawing character single line lower left corner )
 ASCII code 193 = ┴ ( Box drawing character single line horizontal and up )
@@ -10,8 +10,8 @@ ASCII code 217 = ┘ ( Box drawing character single line lower right corner )
 ASCII code 218 = ┌ ( Box drawing character single line upper left corner )
 ASCII code 179 = │ ( Box drawing character single vertical line )
 ASCII code 180 = ┤ ( Box drawing character single vertical and left line )
-Double line
 
+Double Line
 ASCII code 185 = ╣ ( Box drawing character double line vertical and left )
 ASCII code 186 = ║ ( Box drawing character double vertical line )
 ASCII code 187 = ╗ ( Box drawing character double line upper right corner )
@@ -23,8 +23,8 @@ ASCII code 203 = ╦ ( Box drawing character double line horizontal down )
 ASCII code 204 = ╠ ( Box drawing character double line vertical and right )
 ASCII code 205 = ═ ( Box drawing character double horizontal line )
 ASCII code 206 = ╬ ( Box drawing character double line horizontal vertical )
-Shading
 
+Shading
 ASCII code 176 = ░ ( Graphic character, low density dotted )
 ASCII code 177 = ▒ ( Graphic character, medium density dotted )
 ASCII code 178 = ▓ ( Graphic character, high density dotted )

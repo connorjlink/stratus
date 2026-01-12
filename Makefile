@@ -1,39 +1,52 @@
-# Compiler and assembler
-AS = i686-elf-as
-CC = i686-elf-gcc
+OPENSBI ?= C:/Users/Connor/Desktop/opensbi
 
-# Compiler and linker flags
-CFLAGS = -std=c99 -ffreestanding -O2 -Wall -Wextra
-LDFLAGS = -ffreestanding -O2 -nostdlib
+CROSS ?= riscv64-unknown-elf-
+CC     := $(CROSS)gcc
+OBJCOPY:= $(CROSS)objcopy
 
-# Sources and output
-ASM_SOURCES := $(wildcard *.s)
-C_SOURCES := $(wildcard *.c)
-OBJECTS := $(ASM_SOURCES:.s=.o) $(C_SOURCES:.c=.o)
-OUTPUT_BIN = myos.bin
-LINKER_SCRIPT = linker.ld
+ARCH ?= rv32imac
+ABI  ?= ilp32
 
-# Default target
+LINKER_SCRIPT := linker.ld
+
+CFLAGS  := -std=gnu99 -ffreestanding -fno-builtin -fno-stack-protector -O2 -Wall -Wextra \
+		   -march=$(ARCH) -mabi=$(ABI) -mcmodel=medany
+ASFLAGS := -march=$(ARCH) -mabi=$(ABI) -mcmodel=medany
+LDFLAGS := -nostdlib -nostartfiles -ffreestanding -Wl,-T,$(LINKER_SCRIPT) \
+		   -march=$(ARCH) -mabi=$(ABI) -mcmodel=medany
+
+ASSEMBLY_SOURCES := $(wildcard assembly/*.S) $(wildcard assembly/*.s)
+C_SOURCES        := $(wildcard source/*.c)
+OBJECTS          := $(ASSEMBLY_SOURCES:.S=.o)
+OBJECTS          += $(C_SOURCES:.c=.o)
+
+OUTPUT_ELF := target/os.elf
+OUTPUT_BIN := target/os.bin
+
 all: $(OUTPUT_BIN)
 
-# Pattern rule to assemble .s files to .o files
-%.o: %.s
-	$(AS) $< -o $@
+target:
+	mkdir target
 
-# Pattern rule to compile .c files to .o files
+%.o: %.S
+	$(CC) -c $< -o $@ $(ASFLAGS)
+
+%.o: %.s
+	$(CC) -c $< -o $@ $(ASFLAGS)
+
 %.o: %.c
 	$(CC) -c $< -o $@ $(CFLAGS)
 
-# Link all object files into the final binary
-$(OUTPUT_BIN): $(OBJECTS)
-	$(CC) -T $(LINKER_SCRIPT) -o $@ $(LDFLAGS) $(OBJECTS) -lgcc
+$(OUTPUT_ELF): target $(OBJECTS)
+	$(CC) -o $@ $(OBJECTS) $(LDFLAGS) -lgcc
 
-run: all
-	qemu-system-riscv64 -machine virt -s -S -bios ~/opensbi/build/platform/generic/firmware/fw_dynamic.bin
+$(OUTPUT_BIN): $(OUTPUT_ELF)
+	$(OBJCOPY) -O binary $< $@
+
+run: $(OUTPUT_ELF)
+	qemu-system-riscv32 -machine virt -bios $(OPENSBI)/build/platform/generic/firmware/fw_dynamic.bin -kernel $(OUTPUT_ELF)
 
 clean:
-	rm -f $(OBJECTS) $(OUTPUT_BIN)
-
-
-
-
+	rm -f $(OBJECTS)
+	rm -f $(OUTPUT_ELF)
+	rm -f $(OUTPUT_BIN)

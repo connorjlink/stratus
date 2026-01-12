@@ -362,15 +362,15 @@ void kernel_main(void)
 
     while (1)
     {
-        KeyboardEvent ev;
-        if (keyboard_poll_event(&ev))
+        KeyboardEvent event;
+        if (keyboard_poll_event(&event))
         {
-            const bool is_key = (ev.type == KBD_EV_KEY);
-            const bool is_press = (ev.value == 1 || ev.value == 2);
+            const bool is_key = (event.type == KBD_EV_KEY);
+            const bool is_press = (event.value == 1 || event.value == 2);
 
             if (is_key && is_press)
             {
-                switch (ev.code)
+                switch (event.code)
                 {
                     case KBD_KEY_UP:
                     {
@@ -411,7 +411,6 @@ void kernel_main(void)
 
                     case KBD_KEY_ENTER:
                     {
-                        // Enter activates the current selection.
                         if (_explorer_selected)
                         {
                             _explorer_selected = false;
@@ -427,20 +426,19 @@ void kernel_main(void)
 
                     default:
                     {
-                        // Non-navigation key: treat as typed character if representable.
-                        if (ev.ascii)
+                        if (event.ascii)
                         {
-                            if (ev.ascii == 'q')
+                            if (event.ascii == 'q')
                             {
                                 shut_down();
                             }
-                            else if (ev.ascii == '\b')
+                            else if (event.ascii == '\b')
                             {
                                 type_backspace(&x, &y);
                             }
                             else
                             {
-                                terminal_putchar(ev.ascii, &x, &y);
+                                terminal_putchar(event.ascii, &x, &y);
                             }
                         }
                     } break;

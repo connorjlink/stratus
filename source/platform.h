@@ -24,6 +24,18 @@ typedef struct
     char ascii;
 } KeyboardEvent;
 
+// Keyboard event constants (subset of Linux input-event / key codes)
+#define KBD_EV_KEY 1u
+
+#define KBD_KEY_ESC       1u
+#define KBD_KEY_ENTER     28u
+#define KBD_KEY_BACKSPACE 14u
+
+#define KBD_KEY_UP        103u
+#define KBD_KEY_LEFT      105u
+#define KBD_KEY_RIGHT     106u
+#define KBD_KEY_DOWN      108u
+
 char poll_keyboard(void);
 bool keyboard_poll_event(KeyboardEvent* out_event);
 void shut_down(void);

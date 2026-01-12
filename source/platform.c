@@ -113,13 +113,11 @@ static char uart_poll_keyboard_legacy(void)
             switch (c)
             {
                 case 'A': // Up
-                    return 'w';
                 case 'B': // Down
-                    return 's';
                 case 'C': // Right
-                    return 'd';
                 case 'D': // Left
-                    return 'a';
+                    // Do not alias arrow keys to WASD.
+                    return '\0';
                 default:
                     return '\0';
             }

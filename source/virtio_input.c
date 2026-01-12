@@ -114,7 +114,7 @@ typedef struct
 static ViMMIODevice _kbd_dev;
 static ViQueue _eventq;
 
-static bool _kbd_ok = false;
+static bool _keyboard_ok = false;
 
 static uint32_t _modifiers;
 static bool _caps_lock;
@@ -199,16 +199,6 @@ static char map_key_to_ascii(uint16_t code)
 {
     const bool shift = (_modifiers & KMOD_SHIFT) != 0;
 
-    // arrows map to existing menu nav chars for convenience
-    switch (code)
-    {
-        case KEY_UP:    return 'w';
-        case KEY_DOWN:  return 's';
-        case KEY_LEFT:  return 'a';
-        case KEY_RIGHT: return 'd';
-        default: break;
-    }
-
     switch (code)
     {
         case KEY_ENTER: return '\n';
@@ -282,7 +272,7 @@ static bool post_one_buffer(uint16_t slot)
 
 bool virtio_keyboard_init(void)
 {
-    if (_kbd_ok)
+    if (_keyboard_ok)
     {
         return true;
     }
@@ -355,7 +345,7 @@ bool virtio_keyboard_init(void)
 
     _modifiers = 0;
     _caps_lock = false;
-    _kbd_ok = true;
+    _keyboard_ok = true;
 
     printf("virtio-kbd: ready (buffers=%u)\n", (unsigned)_posted);
     return true;
@@ -363,12 +353,11 @@ bool virtio_keyboard_init(void)
 
 bool virtio_keyboard_poll_event(KeyboardEvent* out_event)
 {
-    if (!_kbd_ok || !out_event)
+    if (!_keyboard_ok || !out_event)
     {
         return false;
     }
 
-    // Drain a small number of non-key events to avoid returning lots of EV_SYN.
     for (unsigned attempts = 0; attempts < 8; attempts++)
     {
         uint16_t used_id;
@@ -377,20 +366,18 @@ bool virtio_keyboard_poll_event(KeyboardEvent* out_event)
             return false;
         }
 
-        VirtioInputEvent* ev = (used_id < _eventq.queue_size) ? _event_by_desc[used_id] : 0;
-        if (!ev)
+        VirtioInputEvent* event = (used_id < _eventq.queue_size) ? _event_by_desc[used_id] : 0;
+        if (!event)
         {
-            // Still re-submit the buffer if we can.
             virtq_submit(&_eventq, used_id);
             virtio_mmio_notify_queue(&_kbd_dev, 0);
             continue;
         }
 
-        const uint16_t type = ev->type;
-        const uint16_t code = ev->code;
-        const uint32_t value = ev->value;
+        const uint16_t type = event->type;
+        const uint16_t code = event->code;
+        const uint32_t value = event->value;
 
-        // Re-submit buffer immediately to keep pipeline full.
         virtq_submit(&_eventq, used_id);
         virtio_mmio_notify_queue(&_kbd_dev, 0);
 
@@ -401,7 +388,6 @@ bool virtio_keyboard_poll_event(KeyboardEvent* out_event)
 
         if (type != EV_KEY)
         {
-            // Ignore other event types for now.
             continue;
         }
 

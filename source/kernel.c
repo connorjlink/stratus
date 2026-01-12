@@ -239,7 +239,9 @@ void trap_exception_handler(uint32_t scause, uint32_t sepc, uint32_t stval)
     printf("TRAP: scause=0x%x sepc=0x%x stval=0x%x\n", (unsigned)scause, (unsigned)sepc, (unsigned)stval);
     for (;;)
     {
+#ifdef __GNUC__
         __asm__ volatile ("wfi");
+#endif
     }
 }
 
@@ -299,6 +301,43 @@ void render_about()
     render_text_justified(_navigator_rect, POINT(0, 3), _active_color, COPYRIGHT_LOGO);
 }
 
+static void render_active_view(void)
+{
+    switch (_explorer_index)
+    {
+        case 0:
+            render_editor();
+            break;
+        case 1:
+            render_terminal();
+            break;
+        case 2:
+            render_settings();
+            break;
+        case 3:
+            render_about();
+            break;
+        default:
+            break;
+    }
+}
+
+static void type_backspace(size_t* x, size_t* y)
+{
+    if (!x || !y)
+    {
+        return;
+    }
+
+    if (*x == 0)
+    {
+        return;
+    }
+
+    (*x)--;
+    terminal_putentryat(' ', _active_color, *x, *y);
+}
+
 void kernel_main(void)
 {
     printf("kernel: enter\n");
@@ -311,8 +350,8 @@ void kernel_main(void)
     render_menubar();
     terminal_flush();
 
-    size_t x = 1;
-    size_t y = 17;
+    size_t x = 43;
+    size_t y = 34;
 
     render_groupbox(_explorer_rect, _active_color, "Explorer", false);
     render_groupbox(_console_rect, _active_color, "Console", false);
@@ -323,90 +362,92 @@ void kernel_main(void)
 
     while (1)
     {
-        char c = poll_keyboard();
-        if (c != '\0') 
+        KeyboardEvent ev;
+        if (keyboard_poll_event(&ev))
         {
-            if (c == 'q')
-            {
-                shut_down();
-            }
+            const bool is_key = (ev.type == KBD_EV_KEY);
+            const bool is_press = (ev.value == 1 || ev.value == 2);
 
-            if (!_explorer_selected)
+            if (is_key && is_press)
             {
-                switch (_explorer_index)
+                switch (ev.code)
                 {
-                    case 0:
+                    case KBD_KEY_UP:
                     {
-                        render_editor();
+                        if (_explorer_selected && _explorer_index > 0)
+                        {
+                            _explorer_index--;
+                            render_explorer();
+                        }
                     } break;
 
-                    case 1:
+                    case KBD_KEY_DOWN:
                     {
-                        render_terminal();
+                        if (_explorer_selected && _explorer_index < ARRAY_SIZE(_explorer_items) - 1)
+                        {
+                            _explorer_index++;
+                            render_explorer();
+                        }
                     } break;
 
-                    case 2:
+                    case KBD_KEY_RIGHT:
                     {
-                        render_settings();
+                        if (_explorer_selected)
+                        {
+                            _explorer_selected = false;
+                            render_explorer();
+                            render_active_view();
+                        }
                     } break;
 
-                    case 3:
+                    case KBD_KEY_LEFT:
                     {
-                        render_about();
+                        if (!_explorer_selected)
+                        {
+                            _explorer_selected = true;
+                            render_explorer();
+                        }
+                    } break;
+
+                    case KBD_KEY_ENTER:
+                    {
+                        // Enter activates the current selection.
+                        if (_explorer_selected)
+                        {
+                            _explorer_selected = false;
+                            render_explorer();
+                        }
+                        render_active_view();
+                    } break;
+
+                    case KBD_KEY_BACKSPACE:
+                    {
+                        type_backspace(&x, &y);
+                    } break;
+
+                    default:
+                    {
+                        // Non-navigation key: treat as typed character if representable.
+                        if (ev.ascii)
+                        {
+                            if (ev.ascii == 'q')
+                            {
+                                shut_down();
+                            }
+                            else if (ev.ascii == '\b')
+                            {
+                                type_backspace(&x, &y);
+                            }
+                            else
+                            {
+                                terminal_putchar(ev.ascii, &x, &y);
+                            }
+                        }
                     } break;
                 }
             }
 
-            switch (c)
-            {
-                case 's':
-                {
-                    if (_explorer_selected && _explorer_index < ARRAY_SIZE(_explorer_items) - 1)
-                    {
-                        _explorer_index++;
-                        render_explorer();
-                    } 
-                } break;
-
-                case 'w':
-                {
-                    if (_explorer_selected && _explorer_index > 0)
-                    {
-                        _explorer_index--;
-                        render_explorer();
-                    } 
-                } break;
-
-                case 'd':
-                {
-                    _explorer_selected = false;
-                    render_explorer();
-                } break;
-
-                case 'a':
-                {
-                    _explorer_selected = true;
-                    render_explorer();
-                } break;
-
-                default:
-                {
-                    terminal_putchar(c, &x, &y);
-                } break;
-                    
-            }
-
             terminal_flush();
-
-            // else if (c == 'a') 
-            // {
-            // 	write_console(_console_rect, &_console_cursor, _active_color, "Hello, Antoine!");
-            // }
-
-            // else if (c == 'c')
-            // {
-            // 	write_console(_console_rect, &_console_cursor, _active_color, "Hello, Connor!");
-            // }
         }
     }
 }

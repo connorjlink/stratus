@@ -31,14 +31,14 @@ SECTIONS
   .bss (NOLOAD) : ALIGN(16)
   {
     __bss_start = .;
+    *(.sbss .sbss.*)
     *(.bss .bss.*)
+    *(.scommon)
     *(COMMON)
     __bss_end = .;
   } > RAM
 
-  /* Simple fixed stack at the end of the RAM region */
   __stack_top = ORIGIN(RAM) + LENGTH(RAM);
 
-  /* If you later use small-data sections, set gp near them */
   __global_pointer$ = . + 0x800;
 }

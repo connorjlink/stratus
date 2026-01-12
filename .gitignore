@@ -1,2 +1,3 @@
 .vscode/
-object/*.o
+source/*.o
+assembly/*.o

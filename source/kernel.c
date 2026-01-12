@@ -8,6 +8,7 @@
 #include "utility.h"
 #include "defs.h"
 #include "platform.h"
+#include "fb_console.h"
 
 #define COPYRIGHT_LOGO "STRATUS - (c) 2026 Connor J. Link. All Rights Reserved."
 
@@ -21,82 +22,8 @@ static uint8_t invert_color(uint8_t color)
     return ((color & 0x0F) << 4) | ((color & 0xF0) >> 4);
 }
 
-static uint16_t compose_entry(unsigned char uc, uint8_t color)
-{
-    return (uint16_t)color << 8 | (uint16_t)uc;
-}
-
-static const size_t VGA_WIDTH = 80;
-static const size_t VGA_HEIGHT = 25;
-
-static uint16_t* terminal_buffer = (uint16_t*)0xB8000;
-
-void terminal_initialize(void) 
-{
-    _active_color = compose_color(PALETTE(VGA_COLOR_BLUE, VGA_COLOR_LIGHT_GREY));
-    
-    for (size_t y = 0; y < VGA_HEIGHT; y++)
-    {
-        for (size_t x = 0; x < VGA_WIDTH; x++)
-        {
-            const size_t index = y * VGA_WIDTH + x;
-            terminal_buffer[index] = compose_entry(' ', _active_color);
-        }
-    }
-}
-
-void terminal_putentryat(char c, uint8_t color, size_t x, size_t y) 
-{
-    const size_t index = (y * VGA_WIDTH) + x;
-    terminal_buffer[index] = compose_entry(c, color);
-}
-
-void terminal_putchar(char c, size_t* x, size_t* y) 
-{
-    switch (c)
-    {
-        case '\n': 
-            (*x) = 0;
-            (*y)++;
-            return;
-            
-        case '\r':
-            (*x) = 0;
-            return;
-
-        case '\0':
-            return;
-    }
-
-    terminal_putentryat(c, _active_color, *x, *y);
-
-    (*x)++;
-
-    if ((*x) == VGA_WIDTH) 
-    {
-        (*x) = 0;
-
-        (*y)++;
-
-        if ((*y) == VGA_HEIGHT)
-        {
-            (*y) = 0;
-        }
-    }
-}
-
-void terminal_write(const char* data, size_t size, size_t x, size_t y) 
-{
-    for (size_t i = 0; i < size; i++)
-    {
-        terminal_putchar(data[i], &x, &y);
-    }
-}
-
-void terminal_writestring(const char* data, size_t x, size_t y) 
-{
-    terminal_write(data, strlen(data), x, y);
-}
+static size_t g_term_cols = 80;
+static size_t g_term_rows = 25;
 
 void render_text_center(const char* data, size_t x0, size_t x1, size_t y)
 {
@@ -110,18 +37,18 @@ void render_text_center(const char* data, size_t x0, size_t x1, size_t y)
 void render_menubar()
 {
     const size_t header_row = 0;
-    const size_t copyright_row = VGA_HEIGHT - 1;
+    const size_t copyright_row = (g_term_rows == 0) ? 0 : (g_term_rows - 1);
 
     _active_color = invert_color(_active_color);
 
-    for (size_t x = 0; x < VGA_WIDTH; x++)
+    for (size_t x = 0; x < g_term_cols; x++)
     {
         terminal_putentryat(' ', _active_color, x, header_row);
         terminal_putentryat(' ', _active_color, x, copyright_row);
     }
 
-    render_text_center("Configuration", 0, VGA_WIDTH, header_row);
-    render_text_center(COPYRIGHT_LOGO, 0, VGA_WIDTH, copyright_row);
+    render_text_center("Configuration", 0, g_term_cols ? (g_term_cols - 1) : 0, header_row);
+    render_text_center(COPYRIGHT_LOGO, 0, g_term_cols ? (g_term_cols - 1) : 0, copyright_row);
 
     _active_color = invert_color(_active_color);
 }
@@ -254,7 +181,15 @@ void scroll_rect(Rect parent, uint8_t color)
     {
         for (size_t x = left; x < right; x++)
         {
-            terminal_buffer[y * VGA_WIDTH + x] = terminal_buffer[(y + 1) * VGA_WIDTH + x];
+            char c;
+            uint8_t ccolor;
+            if (!terminal_getentryat(x, y + 1, &c, &ccolor))
+            {
+                c = ' ';
+                ccolor = color;
+            }
+
+            terminal_putentryat(c, ccolor, x, y);
         }
     }
 
@@ -299,10 +234,13 @@ void write_console(Rect parent, Point* cursor, uint8_t color, const char* text)
     render_text(parent, *cursor, color, text);
 }
 
-void exception_handler(uint64_t code)
+void trap_exception_handler(uint32_t scause, uint32_t sepc, uint32_t stval)
 {
-    (void)code;
-    write_console(_console_rect, &_console_cursor, _active_color, "Error!");
+    printf("TRAP: scause=0x%x sepc=0x%x stval=0x%x\n", (unsigned)scause, (unsigned)sepc, (unsigned)stval);
+    for (;;)
+    {
+        __asm__ volatile ("wfi");
+    }
 }
 
 const char* _explorer_items[] =
@@ -363,8 +301,15 @@ void render_about()
 
 void kernel_main(void)
 {
+    printf("kernel: enter\n");
     terminal_initialize();
+
+    terminal_get_size(&g_term_cols, &g_term_rows);
+    layout_init(g_term_cols, g_term_rows);
+
+    printf("kernel: terminal_initialize returned\n");
     render_menubar();
+    terminal_flush();
 
     size_t x = 1;
     size_t y = 17;
@@ -374,6 +319,7 @@ void kernel_main(void)
     render_groupbox(_navigator_rect, _active_color, "Navigator", false);
 
     render_explorer();	
+    terminal_flush();
 
     while (1)
     {
@@ -410,8 +356,6 @@ void kernel_main(void)
                     } break;
                 }
             }
-            
-
 
             switch (c)
             {
@@ -451,6 +395,8 @@ void kernel_main(void)
                 } break;
                     
             }
+
+            terminal_flush();
 
             // else if (c == 'a') 
             // {

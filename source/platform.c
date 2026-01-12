@@ -2,18 +2,22 @@
 // (c) 2026 Connor J. Link. All Rights Reserved.
 
 #include <stdint.h>
+#include <stddef.h>
 
-#define UART0_BASE 0x10000000u
+#include "platform.h"
+#include "virtio_input.h"
+
+#define UART0_BASE ((uintptr_t)0x10000000u)
 #define UART_RHR   0x00u
 #define UART_THR   0x00u
 #define UART_LSR   0x05u
 
-static inline uint8_t mmio8(uint32_t address)
+static inline uint8_t mmio8(uintptr_t address)
 {
     return *(volatile uint8_t*)address;
 }
 
-static inline void mmio8_write(uint32_t address, uint8_t v)
+static inline void mmio8_write(uintptr_t address, uint8_t v)
 {
     *(volatile uint8_t*)address = v;
 }
@@ -39,15 +43,141 @@ static inline int uart_getchar_nonblock(void)
 
 static inline void sbi_shutdown_legacy(void)
 {
-    register uint32_t a7 asm("a7") = 8;
-    asm volatile ("ecall" : : "r"(a7) : "memory");
-    for (;;) { asm volatile ("wfi"); }
+#ifdef __GNUC__
+    register uint32_t a7 __asm__("a7") = 8;
+    __asm__ volatile ("ecall" : : "r"(a7) : "memory");
+    for (;;) { __asm__ volatile ("wfi"); }
+#else
+    for (;;) { }
+#endif
+}
+
+static char uart_poll_keyboard_legacy(void)
+{
+    enum
+    {
+        KBD_STATE_NORMAL = 0,
+        KBD_STATE_ESC,
+        KBD_STATE_CSI,
+    };
+
+    static int state = KBD_STATE_NORMAL;
+
+    int c = uart_getchar_nonblock();
+    if (c < 0)
+    {
+        return '\0';
+    }
+
+    if (c == '\r')
+    {
+        c = '\n';
+    }
+
+    switch (state)
+    {
+        case KBD_STATE_NORMAL:
+        {
+            if (c == 0x1B)
+            {
+                state = KBD_STATE_ESC;
+                return '\0';
+            }
+
+            if (c >= 'A' && c <= 'Z')
+            {
+                c = c - 'A' + 'a';
+            }
+
+            return (char)c;
+        }
+
+        case KBD_STATE_ESC:
+        {
+            // Expect '[' (CSI) or 'O' (SS3) for arrow keys.
+            if (c == '[' || c == 'O')
+            {
+                state = KBD_STATE_CSI;
+                return '\0';
+            }
+
+            // Unknown escape sequence; reset.
+            state = KBD_STATE_NORMAL;
+            return '\0';
+        }
+
+        case KBD_STATE_CSI:
+        {
+            state = KBD_STATE_NORMAL;
+
+            switch (c)
+            {
+                case 'A': // Up
+                    return 'w';
+                case 'B': // Down
+                    return 's';
+                case 'C': // Right
+                    return 'd';
+                case 'D': // Left
+                    return 'a';
+                default:
+                    return '\0';
+            }
+        }
+
+        default:
+            state = KBD_STATE_NORMAL;
+            return '\0';
+    }
+}
+
+bool keyboard_poll_event(KeyboardEvent* output_event)
+{
+    if (!output_event)
+    {
+        return false;
+    }
+
+    static bool tried_virtio;
+    static bool have_virtio;
+
+    if (!tried_virtio)
+    {
+        tried_virtio = true;
+        have_virtio = virtio_keyboard_init();
+    }
+
+    if (have_virtio)
+    {
+        if (virtio_keyboard_poll_event(output_event))
+        {
+            return true;
+        }
+    }
+
+    char character = uart_poll_keyboard_legacy();
+    if (character == '\0')
+    {
+        return false;
+    }
+
+    output_event->type = 1;
+    output_event->code = 0;
+    output_event->value = 1;
+    output_event->modifiers = 0;
+    output_event->ascii = character;
+    return true;
 }
 
 char poll_keyboard(void)
 {
-    int c = uart_getchar_nonblock();
-    return (c < 0) ? '\0' : (char)c;
+    KeyboardEvent ev;
+    if (keyboard_poll_event(&ev) && ev.ascii != 0)
+    {
+        return ev.ascii;
+    }
+
+    return '\0';
 }
 
 void shut_down(void)
@@ -57,14 +187,16 @@ void shut_down(void)
 
 void restart(void)
 {
-    /* If you want reboot, implement SBI SRST (v0.2) later; for now shutdown */
     sbi_shutdown_legacy();
 }
 
 int read_timestamp(void)
 {
-    /* rdtime is 64-bit; return low 32 for now */
-    uint32_t lo;
-    asm volatile ("rdtime %0" : "=r"(lo));
-    return (int)lo;
+#ifdef __GNUC__
+    uint32_t low;
+    __asm__ volatile ("rdtime %0" : "=r"(low));
+    return (int)low;
+#else
+    return 0;
+#endif
 }

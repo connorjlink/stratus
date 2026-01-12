@@ -5,12 +5,31 @@
 // (c) 2026 Connor J. Link. All Rights Reserved.
 
 #include <stdint.h>
+#include <stdbool.h>
+
+typedef enum
+{
+    KMOD_SHIFT = 1u << 0,
+    KMOD_CTRL  = 1u << 1,
+    KMOD_ALT   = 1u << 2,
+    KMOD_META  = 1u << 3,
+} KeyModifiers;
+
+typedef struct
+{
+    uint16_t type;
+    uint16_t code;
+    int32_t value;
+    uint32_t modifiers;
+    char ascii;
+} KeyboardEvent;
 
 char poll_keyboard(void);
+bool keyboard_poll_event(KeyboardEvent* out_event);
 void shut_down(void);
 void restart(void);
 int read_timestamp(void);
-void exception_handler(uint64_t code);
+void trap_exception_handler(uint32_t scause, uint32_t sepc, uint32_t stval);
 
 #define READ_CSR(reg)                      \
     do {                                   \

@@ -9,7 +9,6 @@
 
 static inline void platform_putchar(char c)
 {
-    /* UART0 on QEMU virt */
     volatile unsigned char* thr = (volatile unsigned char*)0x10000000u;
     volatile unsigned char* lsr = (volatile unsigned char*)0x10000005u;
 
@@ -29,14 +28,14 @@ size_t min(size_t x, size_t y)
 
 size_t strlen(const char* str)
 {
-    size_t len = 0;
+    size_t length = 0;
 
-    while (str[len])
+    while (str[length])
     {
-        len++;
+        length++;
     }
 
-    return len;
+    return length;
 }
 
 char* strcpy(char* destination, const char* string)
@@ -162,6 +161,25 @@ void printf(const char* format, ...)
 
                     break;
                 }
+                case 'u':
+                {
+                    unsigned int number = va_arg(va, unsigned int);
+                    char buffer[12];
+                    int i = 0;
+
+                    do
+                    {
+                        buffer[i++] = (char)((number % 10u) + '0');
+                        number /= 10u;
+                    } while (number > 0u);
+
+                    while (i--)
+                    {
+                        putchar(buffer[i]);
+                    }
+
+                    break;
+                }
                 case 'x':
                 {
                     const unsigned int number = va_arg(va, unsigned int);
@@ -170,6 +188,8 @@ void printf(const char* format, ...)
                         unsigned char nibble = (number >> (i * 4)) & 0xF;
                         putchar("0123456789ABCDEF"[nibble]);
                     }
+
+                    break;
                 }
                 case '%':
                 {

@@ -63,4 +63,6 @@ extern Point _console_cursor;
 
 extern uint8_t _active_color;
 
+void layout_init(size_t cols, size_t rows);
+
 #endif

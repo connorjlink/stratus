@@ -44,9 +44,9 @@ $(OUTPUT_BIN): $(OUTPUT_ELF)
 	$(OBJCOPY) -O binary $< $@
 
 run: $(OUTPUT_ELF)
-	qemu-system-riscv32 -machine virt -bios $(OPENSBI)/build/platform/generic/firmware/fw_dynamic.bin -kernel $(OUTPUT_ELF)
+	qemu-system-riscv32 -display sdl -machine virt -device virtio-gpu-device -device virtio-keyboard-device -serial mon:stdio -bios $(OPENSBI)/build/platform/generic/firmware/fw_dynamic.bin -kernel $(OUTPUT_ELF)
 
 clean:
-	rm -f $(OBJECTS)
-	rm -f $(OUTPUT_ELF)
-	rm -f $(OUTPUT_BIN)
+	rm -f assembly/*.o
+	rm -f source/*.o
+	rm -rf target/*.elf

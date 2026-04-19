@@ -1,3 +1,4 @@
 .vscode/
 source/*.o
 assembly/*.o
+.zig-cache/

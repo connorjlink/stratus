@@ -1,10 +1,9 @@
     .section .init
     .globl _start
-    .option norvc
 
 _start:
     # OpenSBI enters in S-mode with a0 = hartid, a1 = dtb pointer
-    # install a minimal trap vector so faults don't fault and reboot
+    # install a minimal trap vector so faults don't double-fault and reboot
     la t0, trap_vector
     csrw stvec, t0
 

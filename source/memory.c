@@ -1,6 +1,8 @@
 #include "memory.h"
-
 #include "utility.h"
+
+// Stratus memory.c
+// (c) Connor J. Link. All Rights Reserved.
 
 extern char __bss_end[];
 extern char __stack_top[];
@@ -8,9 +10,13 @@ extern char __stack_top[];
 static uintptr_t heap_ptr;
 static uintptr_t heap_limit;
 
+// round v upwards to the nearest multiple of align
 static inline uintptr_t align_up_uintptr(uintptr_t v, uintptr_t align)
 {
-    if (align == 0) return v;
+    if (align == 0) 
+    {
+        return v;
+    }
     return (v + (align - 1)) & ~(align - 1);
 }
 

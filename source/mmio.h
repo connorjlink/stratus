@@ -2,7 +2,7 @@
 #define STRATUS_MMIO_H
 
 // Stratus: mmio.h
-// (c) 2026 Connor J. Link. All Rights Reserved.
+// (c) Connor J. Link. All Rights Reserved.
 
 // kernel controls all of high memory
 #define KERNEL_BASE 0x80000000u
@@ -16,6 +16,7 @@
 #define TEXTURE_SIZE (TEXTURE_WIDTH * TEXTURE_HEIGHT * COLOR_DEPTH)
 #define TEXTURE_SLOTS 16u
 #define TEXTURE_ADDRESS(slot) (TEXTURE_BASE + (slot) * TEXTURE_SIZE)
+#define TEXTURE_PIXEL_ADDRESS(slot, x, y) (TEXTURE_ADDRESS(slot) + ((y) * TEXTURE_WIDTH + (x)) * COLOR_DEPTH)
 
 #define FRAMEBUFFER_BASE 0xE0000000u
 #define FRAMEBUFFER_WIDTH 640u
@@ -24,6 +25,7 @@
 // three application framebuffers, plus the master composite
 #define FRAMEBUFFER_SLOTS (3u + 1u)
 #define FRAMEBUFFER_ADDRESS(slot) (FRAMEBUFFER_BASE + (slot) * FRAMEBUFFER_SIZE)
+#define FRAMEBUFFER_PIXEL_ADDRESS(slot, x, y) (FRAMEBUFFER_ADDRESS(slot) + ((y) * FRAMEBUFFER_WIDTH + (x)) * COLOR_DEPTH)
 
 
 #define MMIO_BASE 0xF0000000u
@@ -88,6 +90,10 @@
 
 
 /* helpful actions */
+
+#define MMIO32(address) (*((volatile uint32_t*)(address)))
+#define MMIO16(address) (*((volatile uint16_t*)(address)))
+#define MMIO8(address) (*((volatile uint8_t*)(address)))
 
 #define MMIO_CLEAR_FRAMEBUFFER() do { \
     *((volatile uint32_t*)(MMIO_SET_RECT_X)) = 0; \

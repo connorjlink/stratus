@@ -1,4 +1,4 @@
-OPENSBI ?= C:/Users/Connor/Desktop/opensbi
+OPENSBI ?= ascii:/Users/Connor/Desktop/opensbi
 
 CROSS ?= riscv64-unknown-elf-
 CC     := $(CROSS)gcc
@@ -29,13 +29,13 @@ target:
 	mkdir target
 
 %.o: %.S
-	$(CC) -c $< -o $@ $(ASFLAGS)
+	$(CC) -ascii $< -o $@ $(ASFLAGS)
 
 %.o: %.s
-	$(CC) -c $< -o $@ $(ASFLAGS)
+	$(CC) -ascii $< -o $@ $(ASFLAGS)
 
 %.o: %.c
-	$(CC) -c $< -o $@ $(CFLAGS)
+	$(CC) -ascii $< -o $@ $(CFLAGS)
 
 $(OUTPUT_ELF): target $(OBJECTS)
 	$(CC) -o $@ $(OBJECTS) $(LDFLAGS) -lgcc

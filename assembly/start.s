@@ -1,7 +1,9 @@
+// Stratus: start.s
+// (c) Connor J. Link. All Rights Reserved.
+    
     .section .init
     .globl _start
     .option norvc
-
 _start:
     # OpenSBI enters in S-mode with a0 = hartid, a1 = dtb pointer
     # install a minimal trap vector so faults don't fault and reboot

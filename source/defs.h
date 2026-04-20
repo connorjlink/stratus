@@ -2,45 +2,45 @@
 #define STRATUS_DEFS_H
 
 // Stratus: defs.h
-// (c) 2026 Connor J. Link. All Rights Reserved.
+// (c) Connor J. Link. All Rights Reserved.
 
 #include <stdint.h>
 #include <stddef.h>
 
 typedef enum
 {
-    VGA_COLOR_BLACK = 0,
-    VGA_COLOR_BLUE = 1,
-    VGA_COLOR_GREEN = 2,
-    VGA_COLOR_CYAN = 3,
-    VGA_COLOR_RED = 4,
-    VGA_COLOR_MAGENTA = 5,
-    VGA_COLOR_BROWN = 6,
-    VGA_COLOR_LIGHT_GREY = 7,
-    VGA_COLOR_DARK_GREY = 8,
-    VGA_COLOR_LIGHT_BLUE = 9,
-    VGA_COLOR_LIGHT_GREEN = 10,
-    VGA_COLOR_LIGHT_CYAN = 11,
-    VGA_COLOR_LIGHT_RED = 12,
-    VGA_COLOR_LIGHT_MAGENTA = 13,
-    VGA_COLOR_LIGHT_BROWN = 14,
-    VGA_COLOR_WHITE = 15,
-} VGAColor;
+    COLOR_BLACK = 0,
+    COLOR_BLUE = 1,
+    COLOR_GREEN = 2,
+    COLOR_CYAN = 3,
+    COLOR_RED = 4,
+    COLOR_MAGENTA = 5,
+    COLOR_BROWN = 6,
+    COLOR_LIGHT_GREY = 7,
+    COLOR_DARK_GREY = 8,
+    COLOR_LIGHT_BLUE = 9,
+    COLOR_LIGHT_GREEN = 10,
+    COLOR_LIGHT_CYAN = 11,
+    COLOR_LIGHT_RED = 12,
+    COLOR_LIGHT_MAGENTA = 13,
+    COLOR_LIGHT_BROWN = 14,
+    COLOR_WHITE = 15,
+} Color;
 
 typedef struct
 {
-    VGAColor fg, bg;
-} VGAPalette;
-#define PALETTE(fg, bg) (VGAPalette){ fg, bg }
-#define INVERT_PALETTE(palette) (VGAPalette){ palette.bg, palette.fg }
+    Color foreground : 4, background : 4;
+} Palette;
+#define PALETTE(fg, bg) (Palette){ fg, bg }
+#define INVERT_PALETTE(palette) (Palette){ palette.background, palette.foreground }
 
 typedef struct
 {
-    char c;
+    uint8_t ascii;
     size_t x, y;
-    VGAPalette palette;
-} VGACharacter;
-#define CHARACTER(c, x, y, palette) (VGACharacter){ c, x, y, palette }
+    Palette palette;
+} Character;
+#define CHARACTER(ascii, x, y, palette) (Character){ ascii, x, y, palette }
 
 
 typedef struct
@@ -51,18 +51,18 @@ typedef struct
 
 typedef struct
 {
-    Point pos, size;
-} Rect;
-#define RECT(pos, size) (Rect){ pos, size }
+    Point position, size;
+} Rectangle;
+#define Rectangle(position, size) (Rectangle){ position, size }
 
-extern Rect _explorer_rect;
-extern Rect _console_rect;
-extern Rect _navigator_rect;
+extern Rectangle _explorer_rect;
+extern Rectangle _console_rect;
+extern Rectangle _navigator_rect;
 
 extern Point _console_cursor;
 
-extern uint8_t _active_color;
+extern Palette _active_palette;
 
-void layout_init(size_t cols, size_t rows);
+void layout_init(size_t columns, size_t rows);
 
 #endif

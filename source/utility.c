@@ -1,19 +1,21 @@
-// Stratus: utility.c
-// (c) 2026 Connor J. Link. All Rights Reserved.
-
 #include <stdint.h>
 #include <stdarg.h>
 #include <stdbool.h>
 
 #include "utility.h"
 
-static inline void platform_putchar(char c)
+// Stratus: utility.c
+// (c) Connor J. Link. All Rights Reserved.
+
+static inline void platform_putchar(uint8_t ascii)
 {
+#error TODO: implement platform_putchar for Horizon
+
     volatile unsigned char* thr = (volatile unsigned char*)0x10000000u;
     volatile unsigned char* lsr = (volatile unsigned char*)0x10000005u;
 
     while (((*lsr) & (1u << 5)) == 0) { }
-    *thr = (unsigned char)c;
+    *thr = (unsigned char)ascii;
 }
 
 size_t max(size_t x, size_t y)
@@ -92,14 +94,14 @@ void* memcpy(void* destination, const void* source, size_t number)
     return destination;
 }
 
-void putchar(char c)
+void putchar(uint8_t ascii)
 {
-    if (c == '\n')
+    if (ascii == '\n')
     {
         platform_putchar('\r');
     }
 
-    platform_putchar(c);
+    platform_putchar(ascii);
 }
 
 void printf(const char* format, ...)
@@ -117,8 +119,8 @@ void printf(const char* format, ...)
             {
                 case 'c':
                 {
-                    char c = (char)va_arg(va, int);
-                    putchar(c);
+                    uint8_t ascii = (char)va_arg(va, int);
+                    putchar(ascii);
                     break;
                 }
                 case 's':
@@ -135,11 +137,11 @@ void printf(const char* format, ...)
                     int number = va_arg(va, int);
                     char buffer[12];
                     int i = 0;
-                    int is_negative = 0;
+                    bool is_negative = false;
 
                     if (number < 0)
                     {
-                        is_negative = 1;
+                        is_negative = true;
                         number = -number;
                     }
 
@@ -216,4 +218,3 @@ void printf(const char* format, ...)
     done:
         va_end(va);
 }
-

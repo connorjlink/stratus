@@ -48,7 +48,6 @@ enum
     VMM_PERM_GLOBAL_BIT = 1 << 4,
     VMM_PERM_IO_BIT     = 1 << 5, // non-cacheable MMIO region
 };
-#define 
 
 
 /* type definitions */
